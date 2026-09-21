@@ -106,16 +106,15 @@
       transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Contenedor invisible para YouTube */
-    #yt-hidden-container {
-      position: absolute;
-      top: -9999px;
-      left: -9999px;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
+    @keyframes soundWave {
+      0%, 100% { height: 4px; }
+      50% { height: 16px; }
     }
+    .wave-bar {
+      animation: soundWave 1.2s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 
@@ -124,9 +123,29 @@
   <canvas id="petals-canvas"></canvas>
   <canvas id="sparkles-canvas"></canvas>
 
-  <!-- REPRODUCTOR OCULTO DE YOUTUBE -->
-  <div id="yt-hidden-container">
-    <div id="yt-player"></div>
+  <!-- CONTENEDOR SEGURO DE AUDIO / REPRODUCTOR FLOTANTE -->
+  <div id="music-dock" class="fixed bottom-6 right-6 z-40 bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-amber-200 flex flex-col gap-2 transition-all duration-300">
+    <div class="flex items-center gap-3">
+      <button id="music-btn" onclick="togglePlayback()" class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-white flex items-center justify-center shadow-md shadow-amber-200 hover:scale-105 active:scale-95 transition-transform cursor-pointer">
+        <span id="music-icon" class="text-xs ml-0.5">▶</span>
+      </button>
+      <div class="text-left pr-2 cursor-pointer" onclick="togglePlayback()">
+        <p class="text-xs font-bold text-stone-800 tracking-wide leading-tight">First of the Gang to Die</p>
+        <div class="flex items-center gap-1.5 h-3 mt-0.5">
+          <span class="text-[10px] text-amber-700 font-medium" id="audio-state-text">Toca para escuchar</span>
+          <div id="wave-bars" class="hidden items-end gap-0.5 h-3">
+            <div class="w-0.5 bg-amber-500 rounded-full wave-bar"></div>
+            <div class="w-0.5 bg-amber-500 rounded-full wave-bar"></div>
+            <div class="w-0.5 bg-amber-500 rounded-full wave-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini iframe interactivo (visible para cumplir con las políticas de YouTube) -->
+    <div id="player-frame-box" class="w-48 h-28 rounded-xl overflow-hidden shadow-inner border border-amber-100 hidden">
+      <div id="yt-player-target"></div>
+    </div>
   </div>
 
   <!-- MENSAJE FLOTANTE DE CUIDADO -->
@@ -537,46 +556,99 @@
     </div>
   </main>
 
-  <!-- SCRIPT API OFICIAL DE YOUTUBE -->
+  <!-- MOTOR DE AUDIO RESILIENTE -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
     /* =========================================================================
-       1. REPRODUCTOR OCULTO DE YOUTUBE (MORRISSEY - FIRST OF THE GANG TO DIE)
+       1. REPRODUCTOR ROBUSTO DE YOUTUBE CON COMPATIBILIDAD MÓVIL
        ========================================================================= */
-    const YOUTUBE_VIDEO_ID = 'w5lAY6oO8YE'; // Morrissey - First of the Gang to Die
+    const VIDEO_ID = 'w5lAY6oO8YE'; // Morrissey - First of the Gang to Die
     let ytPlayer = null;
-    let musicStarted = false;
+    let isPlaying = false;
+    let apiReady = false;
 
     function onYouTubeIframeAPIReady() {
-      ytPlayer = new YT.Player('yt-player', {
-        height: '1',
-        width: '1',
-        videoId: YOUTUBE_VIDEO_ID,
+      ytPlayer = new YT.Player('yt-player-target', {
+        height: '100%',
+        width: '100%',
+        videoId: VIDEO_ID,
+        host: 'https://www.youtube-nocookie.com', // Mayor compatibilidad con políticas de privacidad
         playerVars: {
           'autoplay': 0,
-          'controls': 0,
+          'controls': 1,
           'disablekb': 1,
           'fs': 0,
-          'loop': 1,
-          'playlist': YOUTUBE_VIDEO_ID,
           'playsinline': 1,
-          'rel': 0
+          'rel': 0,
+          'origin': window.location.origin
         },
         events: {
-          'onReady': onPlayerReady
+          'onReady': () => { apiReady = true; },
+          'onStateChange': onPlayerStateChange,
+          'onError': onPlayerError
         }
       });
     }
 
-    function onPlayerReady(event) {
-      event.target.setVolume(75);
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        updateMusicUI(true);
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+        updateMusicUI(false);
+      }
     }
 
-    function startBackgroundMusic() {
-      if (!musicStarted && ytPlayer && typeof ytPlayer.playVideo === 'function') {
-        ytPlayer.playVideo();
-        musicStarted = true;
+    function onPlayerError(e) {
+      // Si YouTube restringe la reproducción embebida del video oficial (Error 101/150),
+      // mostramos el marco para permitir interacción directa del usuario
+      document.getElementById('player-frame-box').classList.remove('hidden');
+      document.getElementById('audio-state-text').textContent = 'Toca en el video';
+    }
+
+    function togglePlayback() {
+      const frameBox = document.getElementById('player-frame-box');
+
+      if (!apiReady || !ytPlayer || typeof ytPlayer.playVideo !== 'function') {
+        // Fallback: despliega el frame para interacción manual en móviles
+        frameBox.classList.toggle('hidden');
+        return;
+      }
+
+      try {
+        if (isPlaying) {
+          ytPlayer.pauseVideo();
+        } else {
+          ytPlayer.playVideo();
+          // Aseguramos estado activo
+          setTimeout(() => {
+            const state = ytPlayer.getPlayerState();
+            if (state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.BUFFERING) {
+              frameBox.classList.remove('hidden');
+            }
+          }, 600);
+        }
+      } catch (err) {
+        frameBox.classList.remove('hidden');
+      }
+    }
+
+    function updateMusicUI(playing) {
+      isPlaying = playing;
+      const btnIcon = document.getElementById('music-icon');
+      const stateText = document.getElementById('audio-state-text');
+      const waveBars = document.getElementById('wave-bars');
+
+      if (playing) {
+        btnIcon.textContent = '❚❚';
+        stateText.textContent = 'Sonando 💛';
+        waveBars.classList.remove('hidden');
+        waveBars.classList.add('flex');
+      } else {
+        btnIcon.textContent = '▶';
+        stateText.textContent = 'Pausado';
+        waveBars.classList.add('hidden');
+        waveBars.classList.remove('flex');
       }
     }
 
@@ -741,7 +813,6 @@
 
     function handleBouquetInteraction(e) {
       initAudioContext();
-      startBackgroundMusic();
 
       const rect = bouquet.getBoundingClientRect();
       const clickX = e.clientX || (rect.left + rect.width / 2);
