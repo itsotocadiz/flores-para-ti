@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flores Amarillas Para Ti 💛</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            handwriting: ['"Caveat"', 'cursive'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .ambient-sun {
+      background: 
+        radial-gradient(circle at 50% 25%, rgba(254, 240, 138, 0.45), transparent 55%),
+        radial-gradient(circle at 15% 75%, rgba(253, 230, 138, 0.25), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(254, 243, 199, 0.3), transparent 50%),
+        #fffdfa;
+    }
+
+    #petals-canvas, #sparkles-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    .bouquet-wrapper {
+      transform-origin: 50% 92%;
+      filter: drop-shadow(0 25px 32px rgba(217, 119, 6, 0.17));
+      will-change: transform;
+    }
+
+    .flower-sensor {
+      cursor: pointer;
+      fill: transparent;
+      pointer-events: all;
+    }
+
+    .flower-visual {
+      pointer-events: none;
+      transform-box: fill-box;
+      transform-origin: center center;
+      transition: filter 0.5s ease;
+    }
+
+    @keyframes slowBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04) rotate(0.8deg); }
+    }
+
+    .flower-sensor:hover + .flower-visual {
+      animation: slowBreathe 3.2s ease-in-out infinite;
+      filter: drop-shadow(0 6px 14px rgba(217, 119, 6, 0.25));
+    }
+
+    .petals-layer {
+      transform-box: fill-box;
+      transform-origin: center center;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .all-stripped .petals-layer {
+      opacity: 0 !important;
+      transform: scale(0.3) rotate(15deg) !important;
+    }
+
+    @keyframes bloomGrow {
+      0% {
+        opacity: 0;
+        transform: scale(0.2) rotate(-20deg);
+      }
+      60% {
+        opacity: 0.9;
+        transform: scale(1.08) rotate(3deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    .blooming .petals-layer {
+      animation: bloomGrow 1.5s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    #care-toast {
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+
+<body class="ambient-sun text-stone-800 font-sans antialiased min-h-screen relative overflow-x-hidden selection:bg-amber-200 selection:text-amber-950 flex flex-col justify-center items-center select-none">
+
+  <canvas id="petals-canvas"></canvas>
+  <canvas id="sparkles-canvas"></canvas>
+
+  <!-- MENSAJE FLOTANTE DE CUIDADO -->
+  <div id="care-toast" class="fixed top-8 z-50 pointer-events-none opacity-0 -translate-y-4 px-6 py-3.5 bg-white/95 backdrop-blur-md border border-amber-200 rounded-full shadow-2xl shadow-amber-200/50 flex items-center gap-2.5">
+    <span class="text-xl">🥺</span>
+    <span class="font-serif text-base sm:text-lg font-bold text-amber-950">Trátame con cuidado, amor 💛</span>
+  </div>
+
+  <!-- RAMO FRONDOSO Y ABUNDANTE (16 FLORES EN MÚLTIPLES CAPAS) -->
+  <main class="relative z-10 flex items-center justify-center w-full px-4 py-6">
+    <div id="bouquet" class="bouquet-wrapper relative w-[440px] sm:w-[580px] h-[540px] sm:h-[690px] cursor-pointer" onclick="handleBouquetInteraction(event)">
+      
+      <svg id="bouquet-svg" viewBox="0 0 620 720" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="kraftPaper" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#faedd9" />
+            <stop offset="50%" stop-color="#ecd2b4" />
+            <stop offset="100%" stop-color="#dfbe98" />
+          </linearGradient>
+
+          <!-- Liliums -->
+          <linearGradient id="liliumPetal" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="#d4d775" />
+            <stop offset="35%" stop-color="#fef08a" />
+            <stop offset="100%" stop-color="#fef9c3" />
+          </linearGradient>
+
+          <!-- Rosas / Peonías -->
+          <linearGradient id="roseOuter" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fef08a" />
+            <stop offset="100%" stop-color="#f59e0b" />
+          </linearGradient>
+          <linearGradient id="roseInner" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fbbf24" />
+            <stop offset="100%" stop-color="#b45309" />
+          </linearGradient>
+
+          <!-- Gerberas Silvestres -->
+          <linearGradient id="gerberaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#fff59d" />
+            <stop offset="70%" stop-color="#fbc02d" />
+            <stop offset="100%" stop-color="#ea580c" />
+          </linearGradient>
+
+          <!-- Girasol dorado -->
+          <linearGradient id="sunGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fde047" />
+            <stop offset="70%" stop-color="#eab308" />
+            <stop offset="100%" stop-color="#ca8a04" />
+          </linearGradient>
+
+          <!-- Follaje verde variado -->
+          <linearGradient id="leafGrad1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#84cc16" />
+            <stop offset="100%" stop-color="#365314" />
+          </linearGradient>
+          <linearGradient id="leafGrad2" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#4d7c0f" />
+            <stop offset="100%" stop-color="#1e3a08" />
+          </linearGradient>
+
+          <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="6" stdDeviation="5" flood-opacity="0.18" />
+          </filter>
+        </defs>
+
+        <!-- Red de tallos cruzados -->
+        <g stroke="#2d4a0f" stroke-width="4.8" stroke-linecap="round">
+          <path d="M 310 500 Q 280 360 200 210" />
+          <path d="M 310 500 Q 310 330 310 130" />
+          <path d="M 310 500 Q 340 360 420 210" />
+          <path d="M 310 500 Q 240 370 120 280" />
+          <path d="M 310 500 Q 380 370 500 270" />
+          <path d="M 310 500 Q 280 300 240 140" />
+          <path d="M 310 500 Q 340 300 380 140" />
+          <path d="M 310 500 Q 210 400 150 340" />
+          <path d="M 310 500 Q 410 400 470 340" />
+        </g>
+
+        <!-- Follaje denso y variado (Eucalipto, hojas de lirio y helechos) -->
+        <g fill="url(#leafGrad1)" opacity="0.95">
+          <path d="M 250 300 C 180 270 150 200 160 150 C 190 170 220 230 250 300 Z" />
+          <path d="M 370 305 C 440 275 470 205 460 155 C 430 175 400 235 370 305 Z" />
+          <path d="M 200 360 C 140 340 100 280 120 260 C 150 270 180 310 200 360 Z" />
+          <path d="M 420 355 C 480 335 520 275 500 255 C 470 265 440 305 420 355 Z" />
+          <path d="M 300 230 C 250 190 240 130 260 110 C 280 140 290 180 300 230 Z" />
+          <path d="M 320 230 C 370 190 380 130 360 110 C 340 140 330 180 320 230 Z" />
+          <!-- Nuevas ramas exteriores -->
+          <path d="M 160 260 C 100 230 70 180 90 160 C 120 180 145 220 160 260 Z" fill="url(#leafGrad2)" />
+          <path d="M 460 260 C 520 230 550 180 530 160 C 500 180 475 220 460 260 Z" fill="url(#leafGrad2)" />
+        </g>
+
+        <!-- Ramitas silvestres con bayas y botones de oro -->
+        <g fill="#fef08a" stroke="#65a30d" stroke-width="1.5">
+          <circle cx="85" cy="220" r="5" />
+          <circle cx="105" cy="190" r="4.5" />
+          <circle cx="505" cy="210" r="5" />
+          <circle cx="525" cy="180" r="4.5" />
+          <circle cx="310" cy="75" r="5.5" />
+          <circle cx="285" cy="60" r="4" />
+          <circle cx="335" cy="62" r="4.5" />
+          <circle cx="210" cy="100" r="4.5" />
+          <circle cx="410" cy="100" r="4.5" />
+        </g>
+
+        <!-- Papel kraft posterior ancho -->
+        <polygon points="70,330 550,330 390,620 230,620" fill="url(#kraftPaper)" filter="url(#softShadow)" />
+
+        <!-- ==============================================================
+             16 FLORES ORGÁNICAS CON SENSORES Y PÉTALOS BOTÁNICOS
+             ============================================================== -->
+
+        <!-- 1. LILIUM SUPERIOR CENTRAL (Copa del ramo) -->
+        <g id="flower-1" transform="translate(310, 130)">
+          <circle class="flower-sensor" data-type="lilium" cx="0" cy="0" r="52" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#liliumPetal)" stroke="#ca8a04" stroke-width="0.8">
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" />
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" transform="rotate(60)" />
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" transform="rotate(120)" />
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" transform="rotate(180)" />
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" transform="rotate(240)" />
+              <path d="M0,0 C-18,-45 -14,-75 0,-95 C14,-75 18,-45 0,0 Z" transform="rotate(300)" />
+            </g>
+            <g stroke="#991b1b" stroke-width="1.8" stroke-linecap="round">
+              <line x1="0" y1="0" x2="-8" y2="-25" /><line x1="0" y1="0" x2="8" y2="-24" /><line x1="0" y1="0" x2="0" y2="-28" />
+            </g>
+            <circle cx="-8" cy="-26" r="2.5" fill="#7f1d1d" /><circle cx="8" cy="-25" r="2.5" fill="#7f1d1d" /><circle cx="0" cy="-29" r="2.8" fill="#7f1d1d" />
+            <circle cx="0" cy="0" r="5" fill="#a3e635" />
+          </g>
+        </g>
+
+        <!-- 2. NUEVA: MARGARITA SILVESTRE ALTA IZQUIERDA -->
+        <g id="flower-2" transform="translate(240, 135)">
+          <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="38" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#gerberaGrad)">
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(40)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(80)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(120)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(160)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(200)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(240)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(280)" />
+              <ellipse cx="0" cy="-20" rx="4.5" ry="17" transform="rotate(320)" />
+            </g>
+            <circle cx="0" cy="0" r="10" fill="#78350f" /><circle cx="0" cy="0" r="5" fill="#451a03" />
+          </g>
+        </g>
+
+        <!-- 3. NUEVA: ROSA CANARIO ALTA DERECHA -->
+        <g id="flower-3" transform="translate(380, 135)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="38" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="28" fill="url(#roseOuter)" />
+              <path d="M -20,-12 C -10,-24 10,-24 20,-12 C 26,0 20,16 10,22 C -2,26 -14,22 -20,12 Z" fill="#fef08a" opacity="0.95" />
+              <path d="M -12,-6 C -4,-16 8,-16 12,-6 C 16,2 10,12 2,14 C -6,16 -12,10 -10,2 Z" fill="#fbbf24" />
+            </g>
+            <circle cx="0" cy="0" r="4.5" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- 4. ROSA IZQUIERDA MEDIA-ALTA -->
+        <g id="flower-4" transform="translate(180, 185)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="46" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="38" fill="url(#roseOuter)" />
+              <path d="M -28,-18 C -15,-36 15,-36 28,-18 C 38,0 32,24 16,34 C -2,42 -22,34 -32,18 C -40,2 -36,-10 -28,-18 Z" fill="#fde047" opacity="0.9" />
+              <path d="M -18,-12 C -8,-26 12,-26 20,-12 C 28,2 20,20 8,24 C -6,28 -20,18 -22,8 Z" fill="#fbbf24" />
+              <path d="M -10,-8 C -4,-18 10,-18 14,-8 C 18,2 10,14 2,16 C -6,18 -14,10 -12,2 Z" fill="url(#roseInner)" />
+            </g>
+            <circle cx="0" cy="0" r="6" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- 5. LILIUM DERECHA SUPERIOR -->
+        <g id="flower-5" transform="translate(440, 185) rotate(25)">
+          <circle class="flower-sensor" data-type="lilium" cx="0" cy="0" r="48" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#liliumPetal)" stroke="#ca8a04" stroke-width="0.8">
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" />
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" transform="rotate(60)" />
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" transform="rotate(120)" />
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" transform="rotate(180)" />
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" transform="rotate(240)" />
+              <path d="M0,0 C-14,-35 -10,-60 0,-78 C10,-60 14,-35 0,0 Z" transform="rotate(300)" />
+            </g>
+            <g stroke="#991b1b" stroke-width="1.6" stroke-linecap="round">
+              <line x1="0" y1="0" x2="-6" y2="-20" /><line x1="0" y1="0" x2="6" y2="-19" />
+            </g>
+            <circle cx="-6" cy="-21" r="2.2" fill="#7f1d1d" /><circle cx="6" cy="-20" r="2.2" fill="#7f1d1d" />
+            <circle cx="0" cy="0" r="4.5" fill="#a3e635" />
+          </g>
+        </g>
+
+        <!-- 6. NUEVA: GERBERA CANARIO EXTERNA IZQUIERDA -->
+        <g id="flower-6" transform="translate(110, 220)">
+          <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="40" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#gerberaGrad)">
+              <ellipse cx="0" cy="-24" rx="5" ry="19" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(36)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(72)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(108)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(144)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(180)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(216)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(252)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(288)" />
+              <ellipse cx="0" cy="-24" rx="5" ry="19" transform="rotate(324)" />
+            </g>
+            <circle cx="0" cy="0" r="11" fill="#78350f" /><circle cx="0" cy="0" r="6" fill="#451a03" />
+          </g>
+        </g>
+
+        <!-- 7. NUEVA: ROSA MELOCOTÓN DORADA MEDIA -->
+        <g id="flower-7" transform="translate(345, 205)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="40" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="32" fill="url(#roseOuter)" />
+              <path d="M -22,-14 C -12,-28 12,-28 22,-14 C 30,0 24,18 10,24 C -2,28 -14,24 -22,14 Z" fill="#fde047" opacity="0.9" />
+              <path d="M -14,-8 C -6,-18 10,-18 14,-8 C 18,2 10,12 2,14 C -6,16 -14,10 -12,2 Z" fill="#fbbf24" />
+            </g>
+            <circle cx="0" cy="0" r="5" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- 8. GERBERA SILVESTRE IZQUIERDA -->
+        <g id="flower-8" transform="translate(150, 290)">
+          <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="44" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#gerberaGrad)">
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(30)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(60)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(90)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(120)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(150)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(180)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(210)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(240)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(270)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(300)" />
+              <ellipse cx="0" cy="-28" rx="5.5" ry="22" transform="rotate(330)" />
+            </g>
+            <circle cx="0" cy="0" r="14" fill="#78350f" stroke="#ea580c" stroke-width="2" />
+            <circle cx="0" cy="0" r="9" fill="#451a03" />
+          </g>
+        </g>
+
+        <!-- 9. GIRASOL CENTRAL PROTAGONISTA (Reina del ramo) -->
+        <g id="flower-9" transform="translate(260, 275)">
+          <circle class="flower-sensor" data-type="girasol" cx="0" cy="0" r="66" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#sunGrad)">
+              <ellipse cx="0" cy="-44" rx="15" ry="38" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(30)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(60)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(90)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(120)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(150)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(180)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(210)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(240)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(270)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(300)" />
+              <ellipse cx="0" cy="-44" rx="15" ry="38" transform="rotate(330)" />
+            </g>
+            <circle cx="0" cy="0" r="29" fill="#542407" stroke="#b45309" stroke-width="3" />
+            <circle cx="0" cy="0" r="20" fill="#2e1002" />
+            <circle cx="0" cy="0" r="10" fill="#180700" />
+          </g>
+        </g>
+
+        <!-- 10. NUEVA: PEQUEÑO GIRASOL SECUNDARIO (Derecha Centro) -->
+        <g id="flower-10" transform="translate(370, 290)">
+          <circle class="flower-sensor" data-type="girasol" cx="0" cy="0" r="48" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#sunGrad)">
+              <ellipse cx="0" cy="-30" rx="11" ry="26" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(36)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(72)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(108)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(144)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(180)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(216)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(252)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(288)" />
+              <ellipse cx="0" cy="-30" rx="11" ry="26" transform="rotate(324)" />
+            </g>
+            <circle cx="0" cy="0" r="18" fill="#542407" stroke="#b45309" stroke-width="2" />
+            <circle cx="0" cy="0" r="11" fill="#2e1002" />
+          </g>
+        </g>
+
+        <!-- 11. ROSA DORADA DERECHA EXTERIOR -->
+        <g id="flower-11" transform="translate(470, 280)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="44" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="36" fill="url(#roseOuter)" />
+              <path d="M -24,-16 C -12,-30 12,-30 24,-16 C 32,0 26,20 12,28 C -2,34 -18,28 -26,16 Z" fill="#fde047" opacity="0.92" />
+              <path d="M -15,-10 C -6,-22 10,-22 16,-10 C 22,2 16,16 6,20 C -4,22 -16,14 -18,6 Z" fill="#fbbf24" />
+            </g>
+            <circle cx="0" cy="0" r="5" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- 12. NUEVA: LILIUM CANARIO MEDIO-BAJO (Centro-Izquierda) -->
+        <g id="flower-12" transform="translate(230, 360) rotate(-15)">
+          <circle class="flower-sensor" data-type="lilium" cx="0" cy="0" r="42" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#liliumPetal)" stroke="#ca8a04" stroke-width="0.8">
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" />
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" transform="rotate(60)" />
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" transform="rotate(120)" />
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" transform="rotate(180)" />
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" transform="rotate(240)" />
+              <path d="M0,0 C-12,-30 -9,-50 0,-68 C9,-50 12,-30 0,0 Z" transform="rotate(300)" />
+            </g>
+            <circle cx="0" cy="0" r="4" fill="#a3e635" />
+          </g>
+        </g>
+
+        <!-- 13. ROSA MEDIA-BAJA -->
+        <g id="flower-13" transform="translate(325, 360)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="40" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="32" fill="url(#roseOuter)" />
+              <path d="M -20,-14 C -10,-26 10,-26 20,-14 C 28,0 22,18 10,24 C -2,28 -14,24 -22,14 Z" fill="#fef08a" opacity="0.95" />
+              <path d="M -12,-8 C -4,-18 8,-18 12,-8 C 16,2 10,12 2,14 C -6,16 -12,10 -10,2 Z" fill="#fbbf24" />
+            </g>
+            <circle cx="0" cy="0" r="4.5" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- 14. MARGARITA BAJA-IZQUIERDA -->
+        <g id="flower-14" transform="translate(150, 365)">
+          <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="36" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#gerberaGrad)">
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(36)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(72)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(108)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(144)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(180)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(216)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(252)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(288)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(324)" />
+            </g>
+            <circle cx="0" cy="0" r="11" fill="#78350f" /><circle cx="0" cy="0" r="6" fill="#451a03" />
+          </g>
+        </g>
+
+        <!-- 15. NUEVA: GERBERA RADIANTE DERECHA BAJA -->
+        <g id="flower-15" transform="translate(420, 365)">
+          <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="38" />
+          <g class="flower-visual">
+            <g class="petals-layer" fill="url(#gerberaGrad)">
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(30)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(60)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(90)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(120)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(150)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(180)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(210)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(240)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(270)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(300)" />
+              <ellipse cx="0" cy="-22" rx="4.5" ry="18" transform="rotate(330)" />
+            </g>
+            <circle cx="0" cy="0" r="11" fill="#854d0e" stroke="#eab308" stroke-width="1.8" />
+            <circle cx="0" cy="0" r="7" fill="#451a03" />
+          </g>
+        </g>
+
+        <!-- 16. NUEVA: BOTÓN DE ROSA DE PRIMER PLANO (Frente del lazo) -->
+        <g id="flower-16" transform="translate(280, 420)">
+          <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="35" />
+          <g class="flower-visual">
+            <g class="petals-layer">
+              <circle cx="0" cy="0" r="26" fill="url(#roseOuter)" />
+              <path d="M -16,-10 C -8,-20 8,-20 16,-10 C 22,0 16,14 8,18 C -2,20 -10,16 -16,10 Z" fill="#fef08a" opacity="0.95" />
+              <path d="M -10,-5 C -4,-12 6,-12 10,-5 C 12,2 8,8 2,10 C -4,12 -8,8 -8,2 Z" fill="#fbbf24" />
+            </g>
+            <circle cx="0" cy="0" r="4" fill="#92400e" />
+          </g>
+        </g>
+
+        <!-- Envoltorio de papel kraft frontal plegado -->
+        <polygon points="60,340 270,550 290,610 250,610" fill="#ecd5b9" opacity="0.96" />
+        <polygon points="560,340 350,550 330,610 370,610" fill="#dfc3a3" opacity="0.96" />
+
+        <!-- Moño y lazo amplio -->
+        <path d="M 270 525 Q 310 532 350 525 Q 310 565 270 525" fill="#fffbeb" stroke="#d97706" stroke-width="2" />
+        <circle cx="310" cy="530" r="7.5" fill="#f59e0b" />
+        <path d="M 306 532 Q 290 590 270 605" stroke="#f59e0b" stroke-width="3.8" fill="none" stroke-linecap="round" />
+        <path d="M 314 532 Q 330 590 350 605" stroke="#f59e0b" stroke-width="3.8" fill="none" stroke-linecap="round" />
+      </svg>
+
+      <!-- Tarjeta dedicatoria -->
+      <div class="absolute bottom-12 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm border border-amber-200 px-4 py-1.5 rounded-full shadow-md text-xs font-handwriting text-amber-900 text-xl pointer-events-none">
+        Para mi persona favorita 💛
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* =========================================================================
+       1. MOTOR GRANULAR BOTÁNICO (SONIDO REAL DE HOJAS Y PLANTAS)
+       ========================================================================= */
+    let audioCtx = null;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playOrganicPlantRustle(intensity = 1.0) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const grains = Math.floor(7 + Math.random() * 6);
+
+      for (let i = 0; i < grains; i++) {
+        const grainTime = now + (i * 0.015) + (Math.random() * 0.012);
+        const grainDuration = 0.025 + Math.random() * 0.035;
+
+        const bufferSize = Math.floor(audioCtx.sampleRate * grainDuration);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let j = 0; j < bufferSize; j++) {
+          data[j] = (Math.random() * 2 - 1) * Math.sin((j / bufferSize) * Math.PI);
+        }
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1800 + Math.random() * 1400, grainTime);
+        filter.Q.setValueAtTime(3.2, grainTime);
+
+        const gain = audioCtx.createGain();
+        const grainVol = (0.04 + Math.random() * 0.05) * intensity;
+        gain.gain.setValueAtTime(grainVol, grainTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, grainTime + grainDuration);
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        source.start(grainTime);
+      }
+
+      const woodOsc = audioCtx.createOscillator();
+      const woodGain = audioCtx.createGain();
+      woodOsc.type = 'sine';
+      woodOsc.frequency.setValueAtTime(240 + Math.random() * 60, now);
+      woodOsc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+      woodGain.gain.setValueAtTime(0.04 * intensity, now);
+      woodGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      woodOsc.connect(woodGain);
+      woodGain.connect(audioCtx.destination);
+
+      woodOsc.start(now);
+      woodOsc.stop(now + 0.09);
+    }
+
+    /* =========================================================================
+       2. FÍSICA INERCIAL CONTINUA DEL RAMO (SPRING PHYSICS)
+       ========================================================================= */
+    const bouquet = document.getElementById('bouquet');
+
+    let currentAngle = 0;
+    let targetAngle = 0;
+    let angleVelocity = 0;
+
+    let currentOffsetY = 0;
+    let targetOffsetY = 0;
+    let offsetVelocity = 0;
+
+    let naturalWindTime = 0;
+
+    function updateBouquetPhysics() {
+      naturalWindTime += 0.016;
+
+      const breezeAngle = Math.sin(naturalWindTime * 1.1) * 0.9 + Math.cos(naturalWindTime * 0.7) * 0.5;
+      const breezeY = Math.sin(naturalWindTime * 1.4) * 1.5;
+
+      const springStiffness = 0.08;
+      const springDamping = 0.84;
+
+      const angleForce = ((targetAngle + breezeAngle) - currentAngle) * springStiffness;
+      angleVelocity = (angleVelocity + angleForce) * springDamping;
+      currentAngle += angleVelocity;
+
+      const yForce = ((targetOffsetY + breezeY) - currentOffsetY) * springStiffness;
+      offsetVelocity = (offsetVelocity + yForce) * springDamping;
+      currentOffsetY += offsetVelocity;
+
+      targetAngle *= 0.92;
+      targetOffsetY *= 0.92;
+
+      bouquet.style.transform = `rotate(${currentAngle.toFixed(3)}deg) translateY(${currentOffsetY.toFixed(2)}px)`;
+
+      requestAnimationFrame(updateBouquetPhysics);
+    }
+    requestAnimationFrame(updateBouquetPhysics);
+
+    /* =========================================================================
+       3. CONTADOR GENERAL, DESHOJE Y REFLORECIMIENTO BOTÁNICO
+       ========================================================================= */
+    let bouquetTapCount = 0;
+    let bouquetTapTimer = null;
+    let toastTimeout = null;
+    let isStripped = false;
+
+    function showCareMessage() {
+      const toast = document.getElementById('care-toast');
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4');
+      }, 3800);
+    }
+
+    function triggerFullBouquetStripping(centerX, centerY) {
+      isStripped = true;
+      const bouquetContainer = document.getElementById('bouquet');
+
+      bouquetContainer.classList.add('all-stripped');
+      showCareMessage();
+
+      playOrganicPlantRustle(2.2);
+
+      const types = ['lilium', 'rosa', 'gerbera', 'girasol'];
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          createPetalExplosion(centerX + (Math.random() - 0.5) * 140, centerY + (Math.random() - 0.5) * 90, 35, (Math.random() - 0.5), types[i % types.length], true);
+        }, i * 80);
+      }
+
+      setTimeout(() => {
+        bouquetContainer.classList.remove('all-stripped');
+        bouquetContainer.classList.add('blooming');
+
+        playOrganicPlantRustle(0.9);
+
+        setTimeout(() => {
+          bouquetContainer.classList.remove('blooming');
+          isStripped = false;
+          bouquetTapCount = 0;
+        }, 1600);
+      }, 3200);
+    }
+
+    function handleBouquetInteraction(e) {
+      initAudioContext();
+
+      const rect = bouquet.getBoundingClientRect();
+      const clickX = e.clientX || (rect.left + rect.width / 2);
+      const clickY = e.clientY || (rect.top + rect.height * 0.4);
+
+      const relX = ((clickX - rect.left) / rect.width) - 0.5;
+      const relY = ((clickY - rect.top) / rect.height) - 0.5;
+
+      targetAngle += relX * 16;
+      targetOffsetY += relY < 0 ? -9 : 9;
+
+      playOrganicPlantRustle(1.0);
+
+      if (isStripped) return;
+
+      bouquetTapCount++;
+      clearTimeout(bouquetTapTimer);
+      bouquetTapTimer = setTimeout(() => {
+        bouquetTapCount = 0;
+      }, 2400);
+
+      const targetSensor = e.target.closest('.flower-sensor');
+      const flowerType = targetSensor ? targetSensor.getAttribute('data-type') : 'mixto';
+
+      if (bouquetTapCount >= 10) {
+        triggerFullBouquetStripping(clickX, clickY);
+      } else {
+        createPetalExplosion(clickX, clickY, 26, relX, flowerType);
+      }
+    }
+
+    /* =========================================================================
+       4. PÉTALOS BOTÁNICOS ESPECÍFICOS POR FLOR (CANVAS 2D)
+       ========================================================================= */
+    const canvas = document.getElementById('petals-canvas');
+    const ctx = canvas.getContext('2d');
+    let petals = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const PETAL_THEMES = {
+      lilium: {
+        colors: ['#fef9c3', '#fef08a', '#eef296', '#d4d775'],
+        shape: 'elongated'
+      },
+      rosa: {
+        colors: ['#fef08a', '#fde047', '#fbbf24', '#f59e0b'],
+        shape: 'curved'
+      },
+      gerbera: {
+        colors: ['#fef08a', '#facc15', '#f59e0b', '#ea580c'],
+        shape: 'slender'
+      },
+      girasol: {
+        colors: ['#fde047', '#eab308', '#ca8a04', '#d97706'],
+        shape: 'broad'
+      }
+    };
+
+    class Petal {
+      constructor(x, y, speedX, speedY, flowerType, isMassive = false) {
+        this.x = x;
+        this.y = y;
+        this.speedX = speedX;
+        this.speedY = speedY;
+        this.gravity = isMassive ? 0.08 : 0.11;
+        this.rotation = Math.random() * 360;
+        this.rotSpeed = (Math.random() - 0.5) * 8;
+        this.opacity = 1;
+        this.fadeSpeed = isMassive ? 0.0035 : (Math.random() * 0.005 + 0.0025);
+        this.swayOffset = Math.random() * 100;
+
+        const types = ['lilium', 'rosa', 'gerbera', 'girasol'];
+        const chosenType = (flowerType && PETAL_THEMES[flowerType]) 
+          ? flowerType 
+          : types[Math.floor(Math.random() * types.length)];
+        
+        const theme = PETAL_THEMES[chosenType];
+        this.shape = theme.shape;
+        this.color = theme.colors[Math.floor(Math.random() * theme.colors.length)];
+        this.size = Math.random() * 14 + 10;
+      }
+
+      update() {
+        this.x += this.speedX + Math.sin((this.y + this.swayOffset) * 0.02) * 1.2;
+        this.y += this.speedY;
+        this.speedY += this.gravity;
+        this.rotation += this.rotSpeed;
+        this.opacity -= this.fadeSpeed;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, this.opacity);
+        ctx.fillStyle = this.color;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+
+        if (this.shape === 'elongated') {
+          ctx.bezierCurveTo(-this.size / 3.2, -this.size * 0.8, -this.size / 4, -this.size * 2.1, 0, -this.size * 2.5);
+          ctx.bezierCurveTo(this.size / 4, -this.size * 2.1, this.size / 3.2, -this.size * 0.8, 0, 0);
+        } else if (this.shape === 'curved') {
+          ctx.bezierCurveTo(-this.size / 1.5, -this.size * 0.9, -this.size / 2, -this.size * 1.5, 0, -this.size * 1.6);
+          ctx.bezierCurveTo(this.size / 2, -this.size * 1.5, this.size / 1.5, -this.size * 0.9, 0, 0);
+        } else if (this.shape === 'slender') {
+          ctx.bezierCurveTo(-this.size / 4.5, -this.size * 0.6, -this.size / 4.5, -this.size * 1.6, 0, -this.size * 1.9);
+          ctx.bezierCurveTo(this.size / 4.5, -this.size * 1.6, this.size / 4.5, -this.size * 0.6, 0, 0);
+        } else {
+          ctx.bezierCurveTo(-this.size / 2, -this.size, -this.size / 3, -this.size * 1.6, 0, -this.size * 1.8);
+          ctx.bezierCurveTo(this.size / 3, -this.size * 1.6, this.size / 2, -this.size, 0, 0);
+        }
+
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function createPetalExplosion(originX, originY, count = 25, sideBias = 0, flowerType = 'mixto', isMassive = false) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = isMassive ? (Math.random() * 9 + 4) : (Math.random() * 7 + 2.5);
+        const vx = Math.cos(angle) * velocity + (sideBias * 3.5);
+        const vy = Math.sin(angle) * velocity - (isMassive ? 5 : 2.5);
+        petals.push(new Petal(originX, originY, vx, vy, flowerType, isMassive));
+      }
+    }
+
+    function animatePetals() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = petals.length - 1; i >= 0; i--) {
+        const p = petals[i];
+        p.update();
+        p.draw();
+
+        if (p.opacity <= 0 || p.y > canvas.height + 40) {
+          petals.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(animatePetals);
+    }
+    animatePetals();
+
+    /* =========================================================================
+       5. POLEN Y DESTELLOS DORADOS AMBIENTALES
+       ========================================================================= */
+    const spCanvas = document.getElementById('sparkles-canvas');
+    const spCtx = spCanvas.getContext('2d');
+    let sparkles = [];
+
+    function resizeSparkles() {
+      spCanvas.width = window.innerWidth;
+      spCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeSparkles);
+    resizeSparkles();
+
+    class Sparkle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * spCanvas.width;
+        this.y = spCanvas.height + Math.random() * 20;
+        this.size = Math.random() * 2.5 + 1;
+        this.speedY = Math.random() * 0.6 + 0.2;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.6 + 0.2;
+      }
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        if (this.y < -10) this.reset();
+      }
+      draw() {
+        spCtx.save();
+        spCtx.globalAlpha = this.opacity;
+        spCtx.fillStyle = '#f59e0b';
+        spCtx.beginPath();
+        spCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        spCtx.fill();
+        spCtx.restore();
+      }
+    }
+
+    for (let i = 0; i < 28; i++) {
+      sparkles.push(new Sparkle());
+    }
+
+    function animateSparkles() {
+      spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+      sparkles.forEach(s => {
+        s.update();
+        s.draw();
+      });
+      requestAnimationFrame(animateSparkles);
+    }
+    animateSparkles();
+  </script>
+</body>
+</html>
