@@ -105,6 +105,17 @@
     #care-toast {
       transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
+    /* Contenedor invisible para YouTube */
+    #yt-hidden-container {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -113,13 +124,18 @@
   <canvas id="petals-canvas"></canvas>
   <canvas id="sparkles-canvas"></canvas>
 
+  <!-- REPRODUCTOR OCULTO DE YOUTUBE -->
+  <div id="yt-hidden-container">
+    <div id="yt-player"></div>
+  </div>
+
   <!-- MENSAJE FLOTANTE DE CUIDADO -->
   <div id="care-toast" class="fixed top-8 z-50 pointer-events-none opacity-0 -translate-y-4 px-6 py-3.5 bg-white/95 backdrop-blur-md border border-amber-200 rounded-full shadow-2xl shadow-amber-200/50 flex items-center gap-2.5">
     <span class="text-xl">🥺</span>
     <span class="font-serif text-base sm:text-lg font-bold text-amber-950">Trátame con cuidado, amor 💛</span>
   </div>
 
-  <!-- RAMO FRONDOSO Y ABUNDANTE (16 FLORES EN MÚLTIPLES CAPAS) -->
+  <!-- RAMO FRONDOSO Y ABUNDANTE (16 FLORES) -->
   <main class="relative z-10 flex items-center justify-center w-full px-4 py-6">
     <div id="bouquet" class="bouquet-wrapper relative w-[440px] sm:w-[580px] h-[540px] sm:h-[690px] cursor-pointer" onclick="handleBouquetInteraction(event)">
       
@@ -162,7 +178,7 @@
             <stop offset="100%" stop-color="#ca8a04" />
           </linearGradient>
 
-          <!-- Follaje verde variado -->
+          <!-- Follaje verde -->
           <linearGradient id="leafGrad1" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#84cc16" />
             <stop offset="100%" stop-color="#365314" />
@@ -190,7 +206,7 @@
           <path d="M 310 500 Q 410 400 470 340" />
         </g>
 
-        <!-- Follaje denso y variado (Eucalipto, hojas de lirio y helechos) -->
+        <!-- Follaje denso y variado -->
         <g fill="url(#leafGrad1)" opacity="0.95">
           <path d="M 250 300 C 180 270 150 200 160 150 C 190 170 220 230 250 300 Z" />
           <path d="M 370 305 C 440 275 470 205 460 155 C 430 175 400 235 370 305 Z" />
@@ -198,12 +214,11 @@
           <path d="M 420 355 C 480 335 520 275 500 255 C 470 265 440 305 420 355 Z" />
           <path d="M 300 230 C 250 190 240 130 260 110 C 280 140 290 180 300 230 Z" />
           <path d="M 320 230 C 370 190 380 130 360 110 C 340 140 330 180 320 230 Z" />
-          <!-- Nuevas ramas exteriores -->
           <path d="M 160 260 C 100 230 70 180 90 160 C 120 180 145 220 160 260 Z" fill="url(#leafGrad2)" />
           <path d="M 460 260 C 520 230 550 180 530 160 C 500 180 475 220 460 260 Z" fill="url(#leafGrad2)" />
         </g>
 
-        <!-- Ramitas silvestres con bayas y botones de oro -->
+        <!-- Bayas y botones de oro -->
         <g fill="#fef08a" stroke="#65a30d" stroke-width="1.5">
           <circle cx="85" cy="220" r="5" />
           <circle cx="105" cy="190" r="4.5" />
@@ -219,11 +234,7 @@
         <!-- Papel kraft posterior ancho -->
         <polygon points="70,330 550,330 390,620 230,620" fill="url(#kraftPaper)" filter="url(#softShadow)" />
 
-        <!-- ==============================================================
-             16 FLORES ORGÁNICAS CON SENSORES Y PÉTALOS BOTÁNICOS
-             ============================================================== -->
-
-        <!-- 1. LILIUM SUPERIOR CENTRAL (Copa del ramo) -->
+        <!-- 1. LILIUM SUPERIOR CENTRAL -->
         <g id="flower-1" transform="translate(310, 130)">
           <circle class="flower-sensor" data-type="lilium" cx="0" cy="0" r="52" />
           <g class="flower-visual">
@@ -243,7 +254,7 @@
           </g>
         </g>
 
-        <!-- 2. NUEVA: MARGARITA SILVESTRE ALTA IZQUIERDA -->
+        <!-- 2. MARGARITA SILVESTRE ALTA IZQUIERDA -->
         <g id="flower-2" transform="translate(240, 135)">
           <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="38" />
           <g class="flower-visual">
@@ -262,7 +273,7 @@
           </g>
         </g>
 
-        <!-- 3. NUEVA: ROSA CANARIO ALTA DERECHA -->
+        <!-- 3. ROSA CANARIO ALTA DERECHA -->
         <g id="flower-3" transform="translate(380, 135)">
           <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="38" />
           <g class="flower-visual">
@@ -309,7 +320,7 @@
           </g>
         </g>
 
-        <!-- 6. NUEVA: GERBERA CANARIO EXTERNA IZQUIERDA -->
+        <!-- 6. GERBERA CANARIO EXTERNA IZQUIERDA -->
         <g id="flower-6" transform="translate(110, 220)">
           <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="40" />
           <g class="flower-visual">
@@ -329,7 +340,7 @@
           </g>
         </g>
 
-        <!-- 7. NUEVA: ROSA MELOCOTÓN DORADA MEDIA -->
+        <!-- 7. ROSA MELOCOTÓN DORADA MEDIA -->
         <g id="flower-7" transform="translate(345, 205)">
           <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="40" />
           <g class="flower-visual">
@@ -365,7 +376,7 @@
           </g>
         </g>
 
-        <!-- 9. GIRASOL CENTRAL PROTAGONISTA (Reina del ramo) -->
+        <!-- 9. GIRASOL CENTRAL PROTAGONISTA -->
         <g id="flower-9" transform="translate(260, 275)">
           <circle class="flower-sensor" data-type="girasol" cx="0" cy="0" r="66" />
           <g class="flower-visual">
@@ -389,7 +400,7 @@
           </g>
         </g>
 
-        <!-- 10. NUEVA: PEQUEÑO GIRASOL SECUNDARIO (Derecha Centro) -->
+        <!-- 10. GIRASOL SECUNDARIO (Derecha Centro) -->
         <g id="flower-10" transform="translate(370, 290)">
           <circle class="flower-sensor" data-type="girasol" cx="0" cy="0" r="48" />
           <g class="flower-visual">
@@ -423,7 +434,7 @@
           </g>
         </g>
 
-        <!-- 12. NUEVA: LILIUM CANARIO MEDIO-BAJO (Centro-Izquierda) -->
+        <!-- 12. LILIUM MEDIO-BAJO -->
         <g id="flower-12" transform="translate(230, 360) rotate(-15)">
           <circle class="flower-sensor" data-type="lilium" cx="0" cy="0" r="42" />
           <g class="flower-visual">
@@ -472,7 +483,7 @@
           </g>
         </g>
 
-        <!-- 15. NUEVA: GERBERA RADIANTE DERECHA BAJA -->
+        <!-- 15. GERBERA RADIANTE DERECHA BAJA -->
         <g id="flower-15" transform="translate(420, 365)">
           <circle class="flower-sensor" data-type="gerbera" cx="0" cy="0" r="38" />
           <g class="flower-visual">
@@ -495,7 +506,7 @@
           </g>
         </g>
 
-        <!-- 16. NUEVA: BOTÓN DE ROSA DE PRIMER PLANO (Frente del lazo) -->
+        <!-- 16. BOTÓN DE ROSA DE PRIMER PLANO -->
         <g id="flower-16" transform="translate(280, 420)">
           <circle class="flower-sensor" data-type="rosa" cx="0" cy="0" r="35" />
           <g class="flower-visual">
@@ -508,7 +519,7 @@
           </g>
         </g>
 
-        <!-- Envoltorio de papel kraft frontal plegado -->
+        <!-- Envoltorio frontal plegado -->
         <polygon points="60,340 270,550 290,610 250,610" fill="#ecd5b9" opacity="0.96" />
         <polygon points="560,340 350,550 330,610 370,610" fill="#dfc3a3" opacity="0.96" />
 
@@ -526,9 +537,51 @@
     </div>
   </main>
 
+  <!-- SCRIPT API OFICIAL DE YOUTUBE -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <script>
     /* =========================================================================
-       1. MOTOR GRANULAR BOTÁNICO (SONIDO REAL DE HOJAS Y PLANTAS)
+       1. REPRODUCTOR OCULTO DE YOUTUBE (MORRISSEY - FIRST OF THE GANG TO DIE)
+       ========================================================================= */
+    const YOUTUBE_VIDEO_ID = 'w5lAY6oO8YE'; // Morrissey - First of the Gang to Die
+    let ytPlayer = null;
+    let musicStarted = false;
+
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('yt-player', {
+        height: '1',
+        width: '1',
+        videoId: YOUTUBE_VIDEO_ID,
+        playerVars: {
+          'autoplay': 0,
+          'controls': 0,
+          'disablekb': 1,
+          'fs': 0,
+          'loop': 1,
+          'playlist': YOUTUBE_VIDEO_ID,
+          'playsinline': 1,
+          'rel': 0
+        },
+        events: {
+          'onReady': onPlayerReady
+        }
+      });
+    }
+
+    function onPlayerReady(event) {
+      event.target.setVolume(75);
+    }
+
+    function startBackgroundMusic() {
+      if (!musicStarted && ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        ytPlayer.playVideo();
+        musicStarted = true;
+      }
+    }
+
+    /* =========================================================================
+       2. MOTOR GRANULAR BOTÁNICO (CRUJIDO DE HOJAS Y TALLOS)
        ========================================================================= */
     let audioCtx = null;
 
@@ -596,7 +649,7 @@
     }
 
     /* =========================================================================
-       2. FÍSICA INERCIAL CONTINUA DEL RAMO (SPRING PHYSICS)
+       3. FÍSICA INERCIAL CONTINUA DEL RAMO (SPRING PHYSICS)
        ========================================================================= */
     const bouquet = document.getElementById('bouquet');
 
@@ -637,7 +690,7 @@
     requestAnimationFrame(updateBouquetPhysics);
 
     /* =========================================================================
-       3. CONTADOR GENERAL, DESHOJE Y REFLORECIMIENTO BOTÁNICO
+       4. CONTADOR GENERAL, DESHOJE Y REFLORECIMIENTO BOTÁNICO
        ========================================================================= */
     let bouquetTapCount = 0;
     let bouquetTapTimer = null;
@@ -688,6 +741,7 @@
 
     function handleBouquetInteraction(e) {
       initAudioContext();
+      startBackgroundMusic();
 
       const rect = bouquet.getBoundingClientRect();
       const clickX = e.clientX || (rect.left + rect.width / 2);
@@ -720,7 +774,7 @@
     }
 
     /* =========================================================================
-       4. PÉTALOS BOTÁNICOS ESPECÍFICOS POR FLOR (CANVAS 2D)
+       5. PÉTALOS BOTÁNICOS ESPECÍFICOS POR FLOR (CANVAS 2D)
        ========================================================================= */
     const canvas = document.getElementById('petals-canvas');
     const ctx = canvas.getContext('2d');
@@ -841,7 +895,7 @@
     animatePetals();
 
     /* =========================================================================
-       5. POLEN Y DESTELLOS DORADOS AMBIENTALES
+       6. POLEN Y DESTELLOS DORADOS AMBIENTALES
        ========================================================================= */
     const spCanvas = document.getElementById('sparkles-canvas');
     const spCtx = spCanvas.getContext('2d');
